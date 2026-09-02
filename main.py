@@ -1,6 +1,6 @@
 """Country Explorer - a CLI over the World Bank country API.
 
-Stage 2: parse the two endpoints into one clean list of dictionaries.
+Search by name, filter a region by population, or compare two countries.
 """
 
 import requests
@@ -144,25 +144,160 @@ def load_countries():
     return process_data(rows, populations)
 
 
+def format_country(country):
+    """Return one country as a single readable line."""
+    # :, adds thousands separators so 9092436 reads as 9,092,436.
+    population = f"{country['population']:,}" if country["population"] else "unknown"
+
+    return (
+        f"{country['name']} — Capital: {country['capital']} "
+        f"| Region: {country['region']} "
+        f"| Population: {population}"
+    )
+
+
+def display_results(results):
+    """Print a list of countries, or say there were none."""
+    if not results:
+        print("No matches found.")
+        return
+
+    for country in results:
+        print(f"  {format_country(country)}")
+
+    # Singular/plural so the count doesn't read "1 results".
+    print(f"  ({len(results)} result{'s' if len(results) != 1 else ''})")
+
+
+def search_by_name(countries, term):
+    """Return countries whose name contains term, ignoring case."""
+    term = term.lower()
+
+    # `in` on strings is a substring test, so this is a partial match:
+    # "land" finds Finland, Iceland, Ireland, Poland.
+    return [c for c in countries if term in c["name"].lower()]
+
+
+def filter_by_region(countries, region_term):
+    """Return countries in a region, largest population first."""
+    region_term = region_term.lower()
+
+    # Partial match so "europe" finds "Europe & Central Asia" without the user
+    # having to type the World Bank's full region name.
+    matches = [c for c in countries if region_term in c["region"].lower()]
+
+    # sorted() returns a new list rather than reordering the caller's.
+    return sorted(matches, key=lambda c: c["population"], reverse=True)
+
+
+def find_one(countries, term):
+    """Return the single best name match, or None if it's absent or ambiguous."""
+    matches = search_by_name(countries, term)
+
+    if not matches:
+        print(f"No country matching '{term}'.")
+        return None
+
+    # An exact name match wins over a partial one, so "Chad" doesn't get
+    # confused by a longer name that contains it.
+    for country in matches:
+        if country["name"].lower() == term.lower():
+            return country
+
+    if len(matches) > 1:
+        names = ", ".join(c["name"] for c in matches[:5])
+        print(f"'{term}' is ambiguous — did you mean: {names}?")
+        return None
+
+    return matches[0]
+
+
+def compare_countries(countries, first_term, second_term):
+    """Print a side-by-side comparison of two countries."""
+    first = find_one(countries, first_term)
+    second = find_one(countries, second_term)
+
+    # find_one already explained what went wrong, so just stop.
+    if first is None or second is None:
+        return
+
+    print()
+    for country in (first, second):
+        print(f"  {format_country(country)}")
+
+    # abs() so the difference reads the same regardless of which was named
+    # first, with the larger one stated explicitly instead of implied by sign.
+    difference = abs(first["population"] - second["population"])
+    larger = first if first["population"] > second["population"] else second
+
+    print()
+    print(f"  {larger['name']} is larger by {difference:,} people.")
+
+
+def show_menu():
+    """Print the menu and return the user's choice as a string."""
+    print()
+    print("=== Country Explorer ===")
+    print("1. Search by name")
+    print("2. Filter by region (sorted by population)")
+    print("3. Compare two countries")
+    print("4. Quit")
+    # Returns text, not an int, so typing "abc" falls through to the else
+    # instead of crashing on int().
+    return input("Choose an option (1-4): ").strip()
+
+
 def main():
     print("Fetching country data from the World Bank API...")
 
     countries = load_countries()
 
+    # load_countries already printed the reason, so exit rather than carry on
+    # with nothing to search.
     if countries is None:
         print("Cannot continue without data. Exiting.")
         return
 
     print(f"Loaded {len(countries)} countries.")
 
-    with_population = 0
+    running = True
 
-    for country in countries:
-        if country["population"] > 0:
-            with_population += 1
+    while running:
+        choice = show_menu()
 
-    print(f"{with_population} have a population figure.")
-    print(f"Example: {countries[0]}")
+        if choice == "1":
+            term = input("Search: ").strip()
+
+            if not term:
+                print("Please enter something to search for.")
+            else:
+                display_results(search_by_name(countries, term))
+
+        elif choice == "2":
+            region = input("Region: ").strip()
+
+            if not region:
+                print("Please enter a region name.")
+            else:
+                display_results(filter_by_region(countries, region))
+
+        elif choice == "3":
+            first = input("First country: ").strip()
+            second = input("Second country: ").strip()
+
+            if not first or not second:
+                print("Please name two countries.")
+            else:
+                compare_countries(countries, first, second)
+
+        elif choice == "4":
+            print("Goodbye!")
+            running = False
+
+        else:
+            # Covers empty input and anything that isn't 1-4, so a stray
+            # keystroke re-shows the menu instead of crashing.
+            print("Please choose a number from 1 to 4.")
 
 
 if __name__ == "__main__":
