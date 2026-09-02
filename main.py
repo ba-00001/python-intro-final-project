@@ -1,9 +1,14 @@
 """Country Explorer - a CLI over the World Bank country API.
 
-Search by name, filter a region by population, or compare two countries.
+Search by name, filter a region by population, compare two countries, or
+export the cleaned data to CSV.
 """
 
 import requests
+
+# The Week 11 extension lives in its own module - cleaning and exporting is a
+# different job from fetching and browsing.
+from export import export_countries
 
 # Base URL kept separate from the paths so the two endpoints below don't repeat
 # it, and there's one place to change if the API moves.
@@ -241,10 +246,11 @@ def show_menu():
     print("1. Search by name")
     print("2. Filter by region (sorted by population)")
     print("3. Compare two countries")
-    print("4. Quit")
+    print("4. Export cleaned data to CSV")
+    print("5. Quit")
     # Returns text, not an int, so typing "abc" falls through to the else
     # instead of crashing on int().
-    return input("Choose an option (1-4): ").strip()
+    return input("Choose an option (1-5): ").strip()
 
 
 def main():
@@ -291,13 +297,23 @@ def main():
                 compare_countries(countries, first, second)
 
         elif choice == "4":
+            path, written, dropped = export_countries(countries)
+
+            if path:
+                print(f"Wrote {written} rows to {path}")
+                # Reporting what was discarded matters as much as what was
+                # kept. A silent export looks identical whether it dropped
+                # nothing or half the dataset.
+                print(f"Dropped {dropped} records that failed cleaning.")
+
+        elif choice == "5":
             print("Goodbye!")
             running = False
 
         else:
-            # Covers empty input and anything that isn't 1-4, so a stray
+            # Covers empty input and anything that isn't 1-5, so a stray
             # keystroke re-shows the menu instead of crashing.
-            print("Please choose a number from 1 to 4.")
+            print("Please choose a number from 1 to 5.")
 
 
 if __name__ == "__main__":
