@@ -13,7 +13,9 @@ Assignment 10 (Part I) and Assignment 11 (Part II).
 |---|---|
 | **Pull request** | https://github.com/ba-00001/python-intro-final-project/pull/1 |
 | **Video — Part I (3–5 min)** | `VIDEO_URL_HERE` |
+| **Script — Part I** | [VIDEO-SCRIPT-PART-I.md](VIDEO-SCRIPT-PART-I.md) |
 | **Video demo — Part II (2–4 min)** | `VIDEO_URL_HERE` |
+| **Script — Part II** | [VIDEO-SCRIPT-PART-II.md](VIDEO-SCRIPT-PART-II.md) |
 | **Extension track** | **Option B — Data Cleaning & CSV Export** |
 | **Mindset — Week 10** | [Information Literacy](#mindset-response--information-literacy-week-10) |
 | **Mindset — Week 11** | [Self-Motivation](#mindset-response--self-motivation-week-11) |
